@@ -131,6 +131,7 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
   const [paymentDraft, setPaymentDraft] = useState<InlinePaymentDraft>({ amount: "", currency: "USD", billingCycle: "monthly" });
   const [savingPaymentId, setSavingPaymentId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     let list = clients;
@@ -219,10 +220,11 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
     const amountCents = Math.round(amount * 100);
     const existing = client.manualPayment;
 
+    setPaymentError(null);
     setSavingPaymentId(client.id);
     try {
       const nextDate = existing?.nextPaymentDate ?? new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
-      await fetch("/api/manual-payments", {
+      const res = await fetch("/api/manual-payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -236,9 +238,16 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
           billingCycle: paymentDraft.billingCycle,
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setPaymentError(body.error ?? `Save failed (${res.status})`);
+        return;
+      }
       await fetch("/api/revalidate", { method: "POST" });
       setEditingPaymentId(null);
       window.location.reload();
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : "Network error");
     } finally {
       setSavingPaymentId(null);
     }
@@ -463,7 +472,7 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
                       {/* Total Revenue */}
                       <td className="px-4 py-3.5">
                         <span className={`text-sm font-medium ${client.totalRevenue > 0 ? "text-gray-900" : "text-gray-400"}`}>
-                          {client.totalRevenue > 0 ? formatWithCurrency(client.totalRevenue, mp?.currency) : "—"}
+                          {client.totalRevenue > 0 ? formatCurrency(client.totalRevenue) : "—"}
                         </span>
                       </td>
 
@@ -616,6 +625,11 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
                             {mp && (
                               <span className="text-xs text-gray-400 ml-2">
                                 Currently: {formatWithCurrency(mp.amountCents, mp.currency)}{cycleSuffix(mp.billingCycle)} · Collected: {formatWithCurrency(mp.totalCollectedCents, mp.currency)}
+                              </span>
+                            )}
+                            {paymentError && (
+                              <span className="text-xs text-red-600 font-medium ml-2">
+                                Error: {paymentError}
                               </span>
                             )}
                           </div>

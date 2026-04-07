@@ -2,6 +2,7 @@ import { ParsedTask } from "../clickup/fetchTasks";
 import { SquareSubscriptionSummary, SquareInvoiceSummary, ClientRecord, ManualPaymentRecord, isActiveStatus } from "../types/client";
 import { MatchResult } from "./matchClients";
 import { computeMrrFromInvoices } from "../square/fetchInvoices";
+import { toUSD } from "../mrr/calculate";
 
 export function buildClientRecord(
   task: ParsedTask,
@@ -16,22 +17,23 @@ export function buildClientRecord(
   const subMrr = activeSubscriptions.reduce((sum, s) => sum + s.mrr, 0);
   const invoiceMrr = computeMrrFromInvoices(invoices);
   const squareMrr = subMrr > 0 ? subMrr : invoiceMrr;
+  const manualCurrency = manualPayment?.currency ?? "USD";
   let manualMrr = 0;
   if (manualPayment?.active) {
     if (manualPayment.billingCycle === "yearly") {
-      manualMrr = Math.round(manualPayment.amountCents / 12);
+      manualMrr = Math.round(toUSD(manualPayment.amountCents, manualCurrency) / 12);
     } else if (manualPayment.billingCycle === "monthly") {
-      manualMrr = manualPayment.amountCents;
+      manualMrr = toUSD(manualPayment.amountCents, manualCurrency);
     }
     // one_time: MRR stays 0
   }
   const mrr = squareMrr > 0 ? squareMrr : manualMrr;
 
-  // Total revenue = paid invoices + manual collected
+  // Total revenue = paid invoices + manual collected (converted to USD)
   const invoiceRevenue = invoices
     .filter((i) => i.status === "PAID" || i.status === "PARTIALLY_PAID")
     .reduce((sum, i) => sum + i.amount, 0);
-  const totalRevenue = invoiceRevenue + (manualPayment?.totalCollectedCents ?? 0);
+  const totalRevenue = invoiceRevenue + toUSD(manualPayment?.totalCollectedCents ?? 0, manualCurrency);
 
   // Next due date: earliest unpaid invoice, else manual payment next date
   const today = new Date().toISOString().split("T")[0];

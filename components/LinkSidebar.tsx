@@ -95,7 +95,7 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
     setSaving(client.id + "_pay");
     try {
       const existing = client.manualPayment;
-      await fetch("/api/manual-payments", {
+      const res = await fetch("/api/manual-payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,8 +109,15 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
           billingCycle: draft.billingCycle ?? "monthly",
         }),
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(`Save failed: ${body.error ?? res.status}`);
+        return;
+      }
       setPaymentFormOpen((prev) => ({ ...prev, [client.id]: false }));
       await reloadDashboard();
+    } catch (err) {
+      alert(`Network error: ${err instanceof Error ? err.message : "unknown"}`);
     } finally {
       setSaving(null);
     }

@@ -1,3 +1,17 @@
+export const USD_RATES: Record<string, number> = {
+  USD: 1,
+  EUR: 1.09,
+  GBP: 1.27,
+  CAD: 0.73,
+  AUD: 0.64,
+  INR: 0.012,
+  SGD: 0.74,
+};
+
+export function toUSD(amountCents: number, currency: string): number {
+  return Math.round(amountCents * (USD_RATES[currency] ?? 1));
+}
+
 const CADENCE_TO_MONTHLY: Record<string, number> = {
   DAILY: 30,
   WEEKLY: 4.333,

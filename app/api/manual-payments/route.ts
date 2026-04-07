@@ -28,7 +28,12 @@ export async function POST(req: NextRequest) {
     currency: String(currency ?? "USD"),
     billingCycle: (billingCycle === "yearly" || billingCycle === "one_time") ? billingCycle : "monthly",
   };
-  await upsertManualPayment(clickupId, record);
+  try {
+    await upsertManualPayment(clickupId, record);
+  } catch (err) {
+    console.error("upsertManualPayment failed:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -38,6 +43,11 @@ export async function DELETE(req: NextRequest) {
   if (!clickupId || typeof clickupId !== "string") {
     return NextResponse.json({ error: "clickupId required" }, { status: 400 });
   }
-  await removeManualPayment(clickupId);
+  try {
+    await removeManualPayment(clickupId);
+  } catch (err) {
+    console.error("removeManualPayment failed:", err);
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

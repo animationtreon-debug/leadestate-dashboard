@@ -22,6 +22,10 @@ function getRedis(): import("@upstash/redis").Redis | null {
 }
 
 function filePath(key: string): string {
+  // On Vercel the project root is read-only; /tmp is writable (persists within warm container)
+  if (process.env.VERCEL) {
+    return path.join("/tmp", "centralized-dashboard", `${key}.json`);
+  }
   return path.join(process.cwd(), "data", `${key}.json`);
 }
 
