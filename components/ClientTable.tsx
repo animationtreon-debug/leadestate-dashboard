@@ -21,7 +21,7 @@ function avatarColor(name: string, statusColor: string): string {
     const b = parseInt(hex.slice(4, 6), 16);
     // Perceived lightness — skip colors brighter than light gray
     if (r > 210 && g > 210 && b > 210) {
-      const hash = [...name].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+      const hash = name.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
       return AVATAR_COLORS[hash % AVATAR_COLORS.length];
     }
   }
