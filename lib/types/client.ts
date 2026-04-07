@@ -53,6 +53,8 @@ export interface ClientRecord {
   onboardingSheetUrl: string | null;
   twilioType: string | null;
   plan: string | null;
+  bestWayToContact: string | null;
+  onboardingCall: string | null;
 
   // Square identity
   squareCustomerId: string | null;

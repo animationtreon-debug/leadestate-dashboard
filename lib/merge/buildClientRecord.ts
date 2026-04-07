@@ -67,6 +67,8 @@ export function buildClientRecord(
     onboardingSheetUrl: task.onboardingSheetUrl,
     twilioType: task.twilioType,
     plan: task.plan,
+    bestWayToContact: task.bestWayToContact,
+    onboardingCall: task.onboardingCall,
     squareCustomerId: match.confidence !== "none" ? match.squareCustomerId : null,
     squareCustomerName: match.confidence !== "none" ? match.squareCustomerName : null,
     squareMatchConfidence: match.confidence,

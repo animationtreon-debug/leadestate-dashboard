@@ -37,14 +37,22 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+const INACTIVE_STATUSES = new Set(["cancelled","canceled","churned","inactive","closed","lost","terminated","complete","completed"]);
+
+function titleCase(s: string) {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function StatusBadge({ status, color }: { status: string; color: string }) {
+  const isCancelled = INACTIVE_STATUSES.has(status.toLowerCase().trim());
+  const displayColor = isCancelled ? "#ef4444" : color;
   return (
     <span
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
-      style={{ backgroundColor: `${color}18`, color }}
+      style={{ backgroundColor: `${displayColor}18`, color: displayColor }}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-      {status}
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: displayColor }} />
+      {titleCase(status)}
     </span>
   );
 }
@@ -65,11 +73,13 @@ export function ClientModal({ client, onClose }: ClientModalProps) {
 
   if (!client) return null;
 
-  const invoiceStatusLabel = {
-    current: { label: "Current", color: "#10b981" },
-    overdue: { label: "Overdue", color: "#ef4444" },
-    none: { label: "No invoices", color: "#9ca3af" },
-  }[client.invoiceStatus];
+  function contactHref(contact: string): string {
+    const trimmed = contact.trim();
+    if (trimmed.includes("@")) return `mailto:${trimmed}`;
+    const digits = trimmed.replace(/\D/g, "");
+    if (digits.length >= 7) return `tel:${trimmed}`;
+    return "";
+  }
 
   return (
     <div
@@ -111,11 +121,10 @@ export function ClientModal({ client, onClose }: ClientModalProps) {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin space-y-6">
           {/* Financial Summary */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[
               { label: "MRR", value: formatCurrency(client.mrr), color: "#8b5cf6" },
               { label: "Total Revenue", value: formatCurrency(client.totalRevenue), color: "#f59e0b" },
-              { label: "Invoice Status", value: invoiceStatusLabel.label, color: invoiceStatusLabel.color },
             ].map((m) => (
               <div key={m.label} className="rounded-xl p-4 text-center" style={{ backgroundColor: `${m.color}10` }}>
                 <p className="text-xs text-gray-500 mb-1">{m.label}</p>
@@ -128,7 +137,22 @@ export function ClientModal({ client, onClose }: ClientModalProps) {
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Client Info</h3>
             <div className="rounded-xl border border-gray-100 divide-y divide-gray-50 px-4">
+              {client.bestWayToContact && (
+                <InfoRow
+                  label="Best Way to Contact"
+                  value={(() => {
+                    const href = contactHref(client.bestWayToContact);
+                    return href ? (
+                      <a href={href} className="text-blue-600 hover:text-blue-800 font-medium">
+                        {client.bestWayToContact}
+                      </a>
+                    ) : client.bestWayToContact;
+                  })()}
+                />
+              )}
+              <InfoRow label="Onboarding Call" value={client.onboardingCall || null} />
               <InfoRow label="Onboarding Date" value={client.onboardingDate || null} />
+              {client.plan && <InfoRow label="Plan" value={client.plan} />}
               <InfoRow label="Twilio Type" value={client.twilioType} />
               <InfoRow
                 label="HighLevel"

@@ -5,7 +5,28 @@ import { ClientRecord, ManualPaymentRecord } from "@/lib/types/client";
 import { formatCurrency } from "@/lib/mrr/calculate";
 import { ClientModal } from "./ClientModal";
 
-type SortKey = "name" | "status" | "mrr" | "totalRevenue" | "onboardingDate" | "nextPaymentDueDate" | "lastPaymentDate";
+type SortKey = "stage" | "name" | "status" | "mrr" | "totalRevenue" | "onboardingDate" | "nextPaymentDueDate" | "lastPaymentDate";
+
+const STAGE_PRIORITY: Record<string, number> = {
+  "open": 1,
+  "first app show": 2,
+  "appointment book": 3,
+  "first cc": 4,
+  "work to do": 5,
+  "review": 6,
+  "management": 7,
+};
+function stagePriority(status: string): number {
+  return STAGE_PRIORITY[status.toLowerCase().trim()] ?? 99;
+}
+
+function contactHref(contact: string): string {
+  const trimmed = contact.trim();
+  if (trimmed.includes("@")) return `mailto:${trimmed}`;
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length >= 7) return `tel:${trimmed}`;
+  return "";
+}
 
 const AVATAR_COLORS = [
   "#5f55ee","#e16b16","#d33d44","#008844","#0077cc",
@@ -101,7 +122,7 @@ interface ClientTableProps {
 export function ClientTable({ clients, stageFilter }: ClientTableProps) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "cancelled">("all");
-  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortKey, setSortKey] = useState<SortKey>("stage");
   const [sortAsc, setSortAsc] = useState(true);
   const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
   const [overdueOnly, setOverdueOnly] = useState(false);
@@ -133,6 +154,11 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
     }
 
     return [...list].sort((a, b) => {
+      if (sortKey === "stage") {
+        const pa = stagePriority(a.status), pb = stagePriority(b.status);
+        if (pa !== pb) return sortAsc ? pa - pb : pb - pa;
+        return a.name.localeCompare(b.name);
+      }
       let av = a[sortKey] ?? "";
       let bv = b[sortKey] ?? "";
       if (typeof av === "number" && typeof bv === "number") {
@@ -283,13 +309,14 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
             <thead className="bg-gray-50/80">
               <tr>
                 <SortableHeader label="Client" k="name" />
-                <SortableHeader label="Status" k="status" />
+                <SortableHeader label="Stage" k="stage" />
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Plan</th>
                 <SortableHeader label="Onboarded" k="onboardingDate" />
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Twilio</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Contact</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Onboarding Call</th>
                 <SortableHeader label="MRR" k="mrr" />
                 <SortableHeader label="Revenue" k="totalRevenue" />
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Invoice</th>
                 <SortableHeader label="Next Due" k="nextPaymentDueDate" />
                 <SortableHeader label="Last Payment" k="lastPaymentDate" />
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Links</th>
@@ -299,7 +326,7 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
             <tbody className="divide-y divide-gray-50">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-12 text-center text-sm text-gray-400">
+                  <td colSpan={13} className="px-4 py-12 text-center text-sm text-gray-400">
                     No clients found
                   </td>
                 </tr>
@@ -311,11 +338,7 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
                 const isSavingPayment = savingPaymentId === client.id;
                 const mp = client.manualPayment;
 
-                const invoiceBadge = {
-                  current: "bg-emerald-50 text-emerald-700",
-                  overdue: "bg-red-50 text-red-700",
-                  none: "bg-gray-50 text-gray-400",
-                }[client.invoiceStatus];
+                const contactHrefValue = client.bestWayToContact ? contactHref(client.bestWayToContact) : "";
 
                 return (
                   <>
@@ -382,6 +405,40 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
                         )}
                       </td>
 
+                      {/* Contact */}
+                      <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                        {client.bestWayToContact ? (
+                          contactHrefValue ? (
+                            <a
+                              href={contactHrefValue}
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors whitespace-nowrap"
+                              title={client.bestWayToContact}
+                            >
+                              {contactHrefValue.startsWith("mailto:") ? (
+                                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                                  <polyline points="22,6 12,13 2,6" />
+                                </svg>
+                              ) : (
+                                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.61 4.93 2 2 0 0 1 3.6 2.73h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.5A16 16 0 0 0 13.5 16.09l.97-.97a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7a2 2 0 0 1 1.61 2.05z" />
+                                </svg>
+                              )}
+                              <span className="truncate max-w-[120px]">{client.bestWayToContact}</span>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-gray-600 truncate max-w-[120px] block">{client.bestWayToContact}</span>
+                          )
+                        ) : (
+                          <span className="text-gray-300 text-sm">—</span>
+                        )}
+                      </td>
+
+                      {/* Onboarding Call */}
+                      <td className="px-4 py-3.5 text-sm text-gray-600 whitespace-nowrap">
+                        {client.onboardingCall ?? <span className="text-gray-300">—</span>}
+                      </td>
+
                       {/* MRR */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5 group">
@@ -407,13 +464,6 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
                       <td className="px-4 py-3.5">
                         <span className={`text-sm font-medium ${client.totalRevenue > 0 ? "text-gray-900" : "text-gray-400"}`}>
                           {client.totalRevenue > 0 ? formatWithCurrency(client.totalRevenue, mp?.currency) : "—"}
-                        </span>
-                      </td>
-
-                      {/* Invoice Status */}
-                      <td className="px-4 py-3.5">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${invoiceBadge}`}>
-                          {{ current: "Current", overdue: "Overdue", none: "—" }[client.invoiceStatus]}
                         </span>
                       </td>
 
@@ -490,7 +540,7 @@ export function ClientTable({ clients, stageFilter }: ClientTableProps) {
                     {/* Inline payment edit row */}
                     {isEditingPayment && (
                       <tr key={`${client.id}-pay`} className="bg-purple-50/60 border-l-4 border-purple-400">
-                        <td colSpan={12} className="px-6 py-3">
+                        <td colSpan={13} className="px-6 py-3">
                           <div className="flex items-end gap-3 flex-wrap">
                             <div>
                               <label className="text-xs text-gray-500 block mb-1 font-medium">Amount</label>

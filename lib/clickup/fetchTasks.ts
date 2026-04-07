@@ -15,6 +15,8 @@ const FIELD_NAMES: Record<string, string[]> = {
   ],
   twilioType: ["twilio type", "twilio", "twilio account type"],
   plan: ["plan", "service plan", "package", "subscription plan", "pricing plan", "current plan"],
+  bestWayToContact: ["best way to contact", "best contact", "contact method", "preferred contact", "contact preference", "how to contact"],
+  onboardingCall: ["onboarding call", "onboarding call date", "onboarding call scheduled", "discovery call", "intro call", "kickoff call"],
 };
 
 function matchFieldName(name: string): string | null {
@@ -92,6 +94,8 @@ export interface ParsedTask {
   onboardingSheetUrl: string | null;
   twilioType: string | null;
   plan: string | null;
+  bestWayToContact: string | null;
+  onboardingCall: string | null;
 }
 
 function parseTask(raw: RawClickUpTask): ParsedTask {
@@ -117,6 +121,8 @@ function parseTask(raw: RawClickUpTask): ParsedTask {
     onboardingSheetUrl: fields.onboardingSheet ?? null,
     twilioType: fields.twilioType ?? null,
     plan: fields.plan ?? null,
+    bestWayToContact: fields.bestWayToContact ?? null,
+    onboardingCall: fields.onboardingCall ?? null,
   };
 }
 

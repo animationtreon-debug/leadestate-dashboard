@@ -57,9 +57,25 @@ export async function getAllClients(): Promise<ClientRecord[]> {
     return buildClientRecord(task, match, subscriptions, invoices, lastPaymentDate, manualPayment);
   });
 
-  // Sort: active first, then by name
+  // Sort by pipeline stage order, then alphabetically within each stage
+  const STAGE_PRIORITY: Record<string, number> = {
+    "open": 1,
+    "first app show": 2,
+    "appointment book": 3,
+    "first cc": 4,
+    "work to do": 5,
+    "review": 6,
+    "management": 7,
+  };
+  function stagePriority(status: string): number {
+    const key = status.toLowerCase().trim();
+    return STAGE_PRIORITY[key] ?? (STAGE_PRIORITY[key.replace(/[^a-z ]/g, "")] ?? 99);
+  }
+
   return records.sort((a, b) => {
-    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+    const pa = stagePriority(a.status);
+    const pb = stagePriority(b.status);
+    if (pa !== pb) return pa - pb;
     return a.name.localeCompare(b.name);
   });
 }
