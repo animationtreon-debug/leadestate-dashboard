@@ -31,6 +31,8 @@ export interface ManualPaymentRecord {
   active: boolean;
   totalCollectedCents: number;
   startDate: string;
+  currency: string; // "USD", "EUR", "GBP", "CAD", "AUD"
+  billingCycle: "monthly" | "yearly" | "one_time";
 }
 
 export interface ClientRecord {
@@ -50,6 +52,7 @@ export interface ClientRecord {
   highLevelUrl: string | null;
   onboardingSheetUrl: string | null;
   twilioType: string | null;
+  plan: string | null;
 
   // Square identity
   squareCustomerId: string | null;

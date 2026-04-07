@@ -2,8 +2,7 @@ import { Suspense } from "react";
 import { getAllClients, computeMetrics } from "@/lib/getClients";
 import { fetchAllCustomers } from "@/lib/square/fetchCustomers";
 import { KPICards } from "@/components/KPICards";
-import { PipelineView } from "@/components/PipelineView";
-import { ClientTable } from "@/components/ClientTable";
+import { DashboardClient } from "@/components/DashboardClient";
 import { Header } from "@/components/Header";
 import { LinkSidebar } from "@/components/LinkSidebar";
 
@@ -28,14 +27,13 @@ async function DashboardContent() {
       <Header lastSynced={metrics.lastSynced} />
       <main className="max-w-screen-2xl mx-auto px-6 py-6 space-y-6">
         <KPICards metrics={metrics} />
-        <PipelineView metrics={metrics} />
 
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">All Clients</h2>
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-400">
-                {metrics.activeClients} active · {metrics.cancelledClients} cancelled
+                {metrics.activeClients} active · <span className="text-red-500">{metrics.cancelledClients} cancelled</span>
               </span>
               <LinkSidebar
                 clients={clients}
@@ -43,7 +41,7 @@ async function DashboardContent() {
               />
             </div>
           </div>
-          <ClientTable clients={clients} />
+          <DashboardClient clients={clients} metrics={metrics} />
         </div>
       </main>
     </>

@@ -1,14 +1,9 @@
 import { storageGet, storageSet } from "./storage";
+import { ManualPaymentRecord } from "./types/client";
+
+export type { ManualPaymentRecord };
 
 const KEY = "manual-payments";
-
-export interface ManualPaymentRecord {
-  amountCents: number;
-  nextPaymentDate: string;
-  active: boolean;
-  totalCollectedCents: number;
-  startDate: string;
-}
 
 type PaymentsStore = Record<string, ManualPaymentRecord>;
 
@@ -26,11 +21,12 @@ export async function loadAndProcessManualPayments(): Promise<Map<string, Manual
   let dirty = false;
 
   for (const payment of Object.values(payments)) {
-    if (!payment.active) continue;
+    if (!payment.active || payment.billingCycle === "one_time") continue;
+    const daysToAdd = payment.billingCycle === "yearly" ? 365 : 30;
     while (payment.nextPaymentDate <= today) {
       payment.totalCollectedCents += payment.amountCents;
       const d = new Date(payment.nextPaymentDate + "T12:00:00Z");
-      d.setUTCDate(d.getUTCDate() + 30);
+      d.setUTCDate(d.getUTCDate() + daysToAdd);
       payment.nextPaymentDate = d.toISOString().split("T")[0];
       dirty = true;
     }

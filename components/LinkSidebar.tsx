@@ -57,8 +57,8 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
   const [search, setSearch] = useState("");
   // Track which clients have the payment form open
   const [paymentFormOpen, setPaymentFormOpen] = useState<Record<string, boolean>>({});
-  // Local form state: amount (dollars string) and start date
-  const [paymentDraft, setPaymentDraft] = useState<Record<string, { amount: string; date: string }>>({});
+  // Local form state: amount, date, currency, billing cycle
+  const [paymentDraft, setPaymentDraft] = useState<Record<string, { amount: string; date: string; currency: string; billingCycle: "monthly" | "yearly" | "one_time" }>>({});
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -105,6 +105,8 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
           active: true,
           totalCollectedCents: existing?.totalCollectedCents ?? 0,
           startDate: existing?.startDate ?? draft.date,
+          currency: draft.currency ?? "USD",
+          billingCycle: draft.billingCycle ?? "monthly",
         }),
       });
       setPaymentFormOpen((prev) => ({ ...prev, [client.id]: false }));
@@ -145,6 +147,8 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
           clickupId: client.id,
           active: true,
           nextPaymentDate: nextDate,
+          currency: client.manualPayment?.currency ?? "USD",
+          billingCycle: client.manualPayment?.billingCycle ?? "monthly",
         }),
       });
       await reloadDashboard();
@@ -173,6 +177,8 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
       [clientId]: {
         amount: existing ? String((existing.amountCents / 100).toFixed(0)) : "",
         date: existing?.nextPaymentDate ?? new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+        currency: existing?.currency ?? "USD",
+        billingCycle: existing?.billingCycle ?? "monthly",
       },
     }));
     setPaymentFormOpen((prev) => ({ ...prev, [clientId]: true }));
@@ -329,7 +335,11 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
                       <div className="text-xs text-gray-600 space-y-0.5">
                         <div className="flex items-center gap-2">
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${mp.active ? "bg-emerald-500" : "bg-gray-300"}`} />
-                          <span className="font-semibold text-gray-800">{formatAmount(mp.amountCents)}/mo</span>
+                          <span className="font-semibold text-gray-800">
+                            {formatAmount(mp.amountCents)}
+                            {mp.billingCycle === "yearly" ? "/yr" : mp.billingCycle === "one_time" ? " one-time" : "/mo"}
+                            {mp.currency && mp.currency !== "USD" && <span className="ml-1 text-gray-400 font-normal">{mp.currency}</span>}
+                          </span>
                           {!mp.active && <span className="text-gray-400">(stopped)</span>}
                         </div>
                         {mp.active && (
@@ -401,7 +411,7 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
                       </p>
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <label className="text-xs text-gray-500 block mb-1">Monthly amount ($)</label>
+                          <label className="text-xs text-gray-500 block mb-1">Amount</label>
                           <input
                             type="number"
                             min="1"
@@ -415,6 +425,42 @@ export function LinkSidebar({ clients, squareCustomers }: LinkSidebarProps) {
                             }
                             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                           />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 block mb-1">Currency</label>
+                          <select
+                            value={draft?.currency ?? "USD"}
+                            onChange={(e) =>
+                              setPaymentDraft((prev) => ({
+                                ...prev,
+                                [client.id]: { ...prev[client.id], currency: e.target.value },
+                              }))
+                            }
+                            className="text-sm border border-gray-200 rounded-lg px-2 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                          >
+                            {["USD","EUR","GBP","CAD","AUD","INR","SGD"].map((c) => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-xs text-gray-500 block mb-1">Billing cycle</label>
+                          <select
+                            value={draft?.billingCycle ?? "monthly"}
+                            onChange={(e) =>
+                              setPaymentDraft((prev) => ({
+                                ...prev,
+                                [client.id]: { ...prev[client.id], billingCycle: e.target.value as "monthly" | "yearly" | "one_time" },
+                              }))
+                            }
+                            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                          >
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="one_time">One Time</option>
+                          </select>
                         </div>
                         <div className="flex-1">
                           <label className="text-xs text-gray-500 block mb-1">First payment date</label>

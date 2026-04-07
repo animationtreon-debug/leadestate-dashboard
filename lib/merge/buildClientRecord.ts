@@ -16,9 +16,16 @@ export function buildClientRecord(
   const subMrr = activeSubscriptions.reduce((sum, s) => sum + s.mrr, 0);
   const invoiceMrr = computeMrrFromInvoices(invoices);
   const squareMrr = subMrr > 0 ? subMrr : invoiceMrr;
-  const mrr = squareMrr > 0
-    ? squareMrr
-    : (manualPayment?.active ? manualPayment.amountCents : 0);
+  let manualMrr = 0;
+  if (manualPayment?.active) {
+    if (manualPayment.billingCycle === "yearly") {
+      manualMrr = Math.round(manualPayment.amountCents / 12);
+    } else if (manualPayment.billingCycle === "monthly") {
+      manualMrr = manualPayment.amountCents;
+    }
+    // one_time: MRR stays 0
+  }
+  const mrr = squareMrr > 0 ? squareMrr : manualMrr;
 
   // Total revenue = paid invoices + manual collected
   const invoiceRevenue = invoices
@@ -59,6 +66,7 @@ export function buildClientRecord(
     highLevelUrl: task.highLevelUrl,
     onboardingSheetUrl: task.onboardingSheetUrl,
     twilioType: task.twilioType,
+    plan: task.plan,
     squareCustomerId: match.confidence !== "none" ? match.squareCustomerId : null,
     squareCustomerName: match.confidence !== "none" ? match.squareCustomerName : null,
     squareMatchConfidence: match.confidence,

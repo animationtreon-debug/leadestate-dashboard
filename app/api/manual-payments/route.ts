@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { clickupId, amountCents, nextPaymentDate, active, totalCollectedCents, startDate } = body;
+  const { clickupId, amountCents, nextPaymentDate, active, totalCollectedCents, startDate, currency, billingCycle } = body;
   if (!clickupId || typeof clickupId !== "string") {
     return NextResponse.json({ error: "clickupId required" }, { status: 400 });
   }
@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
     active: Boolean(active),
     totalCollectedCents: Number(totalCollectedCents ?? 0),
     startDate: String(startDate ?? nextPaymentDate),
+    currency: String(currency ?? "USD"),
+    billingCycle: (billingCycle === "yearly" || billingCycle === "one_time") ? billingCycle : "monthly",
   };
   await upsertManualPayment(clickupId, record);
   return NextResponse.json({ ok: true });
