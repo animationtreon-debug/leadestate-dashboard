@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/usr/local/bin/node --version)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "WebSearch",
+      "WebFetch(domain:developer.squareup.com)",
+      "WebFetch(domain:developer.clickup.com)",
+      "Bash(/usr/local/bin/npm install:*)",
+      "Read(//usr/local/bin/**)",
+      "Bash(/usr/local/bin/node -e \"console.log\\(''works''\\)\")",
+      "Bash(/usr/local/bin/node /usr/local/bin/npm install)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(/usr/local/bin/node -e \":*)",
+      "Bash(/usr/local/bin/node -e \"const sq = require\\(''square''\\); console.log\\(Object.keys\\(sq\\).filter\\(k => k.toLowerCase\\(\\).includes\\(''env''\\) || k.toLowerCase\\(\\).includes\\(''client''\\)\\).slice\\(0,20\\)\\)\")",
+      "Bash(/usr/local/bin/node /usr/local/bin/npm install @upstash/redis)"
+    ]
+  }
+}
