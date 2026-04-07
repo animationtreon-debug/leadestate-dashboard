@@ -98,12 +98,9 @@ function parseTask(raw: RawClickUpTask): ParsedTask {
   for (const cf of raw.custom_fields) {
     const key = matchFieldName(cf.name);
     if (key) {
-      fields[key] = extractCustomFieldValue({
-        name: cf.name,
-        type: cf.type,
-        value: cf.value,
-        ...cf,
-      } as Parameters<typeof extractCustomFieldValue>[0]);
+      fields[key] = extractCustomFieldValue(
+        cf as Parameters<typeof extractCustomFieldValue>[0]
+      );
     }
   }
 
