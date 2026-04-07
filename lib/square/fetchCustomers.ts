@@ -1,3 +1,4 @@
+import { Customer } from "square";
 import { getSquareClient } from "./client";
 
 export interface RawSquareCustomer {
@@ -24,15 +25,7 @@ export async function fetchAllCustomers(): Promise<RawSquareCustomer[]> {
   return all;
 }
 
-function normalizeCustomer(c: {
-  id?: string;
-  givenName?: string;
-  familyName?: string;
-  companyName?: string;
-  emailAddress?: string;
-  phoneNumber?: string;
-  createdAt?: string;
-}): RawSquareCustomer {
+function normalizeCustomer(c: Customer): RawSquareCustomer {
   return {
     id: c.id ?? "",
     givenName: c.givenName ?? null,
