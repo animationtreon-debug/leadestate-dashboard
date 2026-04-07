@@ -19,14 +19,20 @@ export async function POST(req: NextRequest) {
   if (!clickupId || typeof clickupId !== "string") {
     return NextResponse.json({ error: "clickupId required" }, { status: 400 });
   }
+  const resolvedCycle = (billingCycle === "yearly" || billingCycle === "one_time") ? billingCycle : "monthly";
+  // For one-time payments, the full amount is immediately collected revenue
+  const resolvedCollected = resolvedCycle === "one_time"
+    ? Number(amountCents)
+    : Number(totalCollectedCents ?? 0);
+
   const record: ManualPaymentRecord = {
     amountCents: Number(amountCents),
     nextPaymentDate: String(nextPaymentDate),
     active: Boolean(active),
-    totalCollectedCents: Number(totalCollectedCents ?? 0),
+    totalCollectedCents: resolvedCollected,
     startDate: String(startDate ?? nextPaymentDate),
     currency: String(currency ?? "USD"),
-    billingCycle: (billingCycle === "yearly" || billingCycle === "one_time") ? billingCycle : "monthly",
+    billingCycle: resolvedCycle,
   };
   try {
     await upsertManualPayment(clickupId, record);
