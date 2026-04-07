@@ -1,4 +1,4 @@
-import { Customer } from "square";
+import { Square } from "square";
 import { getSquareClient } from "./client";
 
 export interface RawSquareCustomer {
@@ -17,15 +17,15 @@ export async function fetchAllCustomers(): Promise<RawSquareCustomer[]> {
 
   let page = await client.customers.list({});
   all.push(...page.data.map(normalizeCustomer));
-  while (page._hasNextPage()) {
-    page = await page.loadNextPage();
+  while (page.hasNextPage()) {
+    page = await page.getNextPage();
     all.push(...page.data.map(normalizeCustomer));
   }
 
   return all;
 }
 
-function normalizeCustomer(c: Customer): RawSquareCustomer {
+function normalizeCustomer(c: Square.Customer): RawSquareCustomer {
   return {
     id: c.id ?? "",
     givenName: c.givenName ?? null,

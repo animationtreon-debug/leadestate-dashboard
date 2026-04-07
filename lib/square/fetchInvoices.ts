@@ -82,20 +82,11 @@ export async function fetchInvoicesForCustomers(
   return resultMap;
 }
 
-export async function fetchLastPaymentDate(customerId: string): Promise<string | null> {
-  const client = getSquareClient();
-  try {
-    const page = await client.payments.list({
-      locationId: getLocationId(),
-      customerId,
-      sortOrder: "DESC",
-    });
-    const payments = (page.data ?? []) as Array<{ status?: string; createdAt?: string }>;
-    const completed = payments.find((p) => p.status === "COMPLETED");
-    return completed?.createdAt ?? payments[0]?.createdAt ?? null;
-  } catch {
-    return null;
-  }
+export function lastPaymentDateFromInvoices(invoices: SquareInvoiceSummary[]): string | null {
+  const paid = invoices.filter((i) => i.paidAt).sort((a, b) =>
+    (b.paidAt ?? "").localeCompare(a.paidAt ?? "")
+  );
+  return paid[0]?.paidAt ?? null;
 }
 
 // MRR fallback: use most recent non-cancelled invoice amount as monthly rate

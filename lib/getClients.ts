@@ -1,7 +1,7 @@
 import { fetchAllTasks } from "./clickup/fetchTasks";
 import { fetchAllCustomers } from "./square/fetchCustomers";
 import { fetchSubscriptionsForCustomers } from "./square/fetchSubscriptions";
-import { fetchInvoicesForCustomers, fetchLastPaymentDate } from "./square/fetchInvoices";
+import { fetchInvoicesForCustomers, lastPaymentDateFromInvoices } from "./square/fetchInvoices";
 import { matchClientsToSquare } from "./merge/matchClients";
 import { buildClientRecord } from "./merge/buildClientRecord";
 import { loadAndProcessManualPayments } from "./manualPayments";
@@ -38,14 +38,12 @@ export async function getAllClients(): Promise<ClientRecord[]> {
     }),
   ]);
 
-  // Fetch last payment dates in parallel (per customer, limited concurrency)
+  // Derive last payment dates from invoices (no extra API call needed)
   const lastPaymentMap = new Map<string, string | null>();
-  await Promise.all(
-    uniqueCustomerIds.map(async (id) => {
-      const date = await fetchLastPaymentDate(id).catch(() => null);
-      lastPaymentMap.set(id, date);
-    })
-  );
+  for (const id of uniqueCustomerIds) {
+    const invoices = invoicesMap.get(id) ?? [];
+    lastPaymentMap.set(id, lastPaymentDateFromInvoices(invoices));
+  }
 
   // Build client records
   const records: ClientRecord[] = tasks.map((task) => {
